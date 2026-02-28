@@ -13,6 +13,18 @@ The **Heap** is where dynamically allocated memory lives — when you use `new` 
 The **Stack** manages function calls, storing local variables, return addresses, and function parameters.  
 Finally, the **Process Control Block (PCB)** is metadata that the OS maintains about the process, which we'll discuss in detail shortly.
 
+```mermaid
+flowchart TB
+    subgraph Process Address Space (typical)
+        Stack[Stack\n(function calls, locals)]
+        Heap[Heap\n(dynamic allocations)]
+        Data[Data Section\n(globals/static)]
+        Text[Code/Text Section\n(instructions)]
+        Stack --- Heap --- Data --- Text
+    end
+    PCB[(PCB\n(OS metadata, not part of user address space))]
+```
+
 ## 1.2 Process vs Thread
 
 This is a classic interview question, and understanding the distinction deeply will help you explain it conversationally.
@@ -20,6 +32,14 @@ This is a classic interview question, and understanding the distinction deeply w
 A process is an **independent execution unit** with its own memory space. Each process has its own address space, which means one process cannot directly access another process's memory. Creating a process is considered **heavyweight** because the OS must allocate separate memory, set up file descriptors, and initialize various resources. Communication between processes requires **Inter-Process Communication (IPC)** mechanisms since they can't share memory directly. The advantage is that if one process crashes, other processes remain unaffected.
 
 A thread, on the other hand, is a **lightweight unit of execution within a process**. All threads within a process share the same address space — they share code, data, and heap memory. However, each thread has its own stack and registers, including its own program counter and stack pointer. Creating a thread is much lighter than creating a process because the OS doesn't need to duplicate the entire memory space. Communication between threads is easier since they can directly access shared memory. The downside is that if one thread crashes with something like a segmentation fault, the entire process goes down.
+
+| Aspect | Process | Thread |
+|---|---|---|
+| Address space | Separate | Shared (within same process) |
+| Creation cost | Higher (heavyweight) | Lower (lightweight) |
+| Isolation | Strong (crash usually contained) | Weak (crash can kill process) |
+| Communication | IPC needed | Shared memory (needs sync) |
+| Context switch cost | Higher (page table/TLB effects) | Lower |
 
 When would you use each? In my C++ work, I use threads when I need concurrent execution within the same application — for example, one thread handling user input while another processes data in the background. Since threads share memory, I can easily pass data between them using shared variables, but this also means I need to be careful about synchronization using mutexes to prevent race conditions. If I needed complete isolation between tasks, or if I'm worried about one component crashing and affecting others, I'd use separate processes instead. Browsers often use this model — each tab runs as a separate process, so a crash in one tab doesn't bring down the entire browser.
 
@@ -37,6 +57,18 @@ A process goes through several states during its lifetime. Understanding this st
 
 The five main states are **New**, **Ready**, **Running**, **Waiting** (also called Blocked), and **Terminated**. When a process is in the **New** state, it's being created — memory is being allocated and the PCB is being set up. Once initialization is complete, the process moves to the **Ready** state, meaning it's loaded in memory and waiting for CPU time. Multiple processes can be in the ready state simultaneously, sitting in what's called the ready queue.
 
+```mermaid
+stateDiagram-v2
+    [*] --> New
+    New --> Ready: admitted
+    Ready --> Running: scheduler dispatch
+    Running --> Ready: preemption / time slice
+    Running --> Waiting: I/O or event wait
+    Waiting --> Ready: I/O complete / event occurs
+    Running --> Terminated: exit / abort
+    Terminated --> [*]
+```
+
 When the scheduler selects a process from the ready queue, it moves to the **Running** state. On a single-core system, only one process can be running at any given moment. From the running state, several transitions are possible. If the process's time slice expires or a higher-priority process arrives, it gets preempted and moves back to Ready. If the process requests I/O or waits for some event, it moves to the **Waiting** state — it cannot proceed until that event occurs. When the I/O completes or the event happens, the process moves back to Ready. Finally, when the process finishes execution or calls `exit()`, it moves to the **Terminated** state, where the OS cleans up by deallocating memory, closing files, and removing the PCB.
 
 Here's a practical example: when I call a blocking function like `read()` on a file in my C++ program, my process moves from Running to Waiting state. The OS then schedules another process to use the CPU. When the disk I/O completes, my process moves to Ready state and waits for the scheduler to pick it up again. This is why blocking I/O can hurt performance in single-threaded applications — the CPU sits idle waiting for I/O instead of doing useful work.
@@ -46,6 +78,21 @@ Here's a practical example: when I call a blocking function like `read()` on a f
 **Context switching** is the mechanism by which the OS saves the state of one process and loads the state of another, allowing multiple processes to share a single CPU. This is what enables multitasking.
 
 When a context switch happens, several things occur in sequence. First, an interrupt or system call triggers the switch — this could be a timer interrupt indicating the time slice expired, an I/O interrupt, or a system call from the process itself. The OS then saves the current process's state, including all CPU registers, the program counter, and the stack pointer, into that process's PCB. The OS updates the PCB to reflect the new state (Running to Ready, or Running to Waiting). Next, the scheduler selects a process from the ready queue. The OS loads the new process's state from its PCB, restoring all the registers and the program counter. If the system uses virtual memory, the OS also updates the memory mappings by switching page tables. Finally, the CPU jumps to the instruction pointed to by the new program counter, and the new process resumes execution.
+
+```mermaid
+sequenceDiagram
+    participant CPU
+    participant OS as Kernel/OS
+    participant PCB1 as PCB(P1)
+    participant PCB2 as PCB(P2)
+
+    CPU->>OS: timer interrupt / syscall / I/O interrupt
+    OS->>PCB1: save registers + PC + SP
+    OS->>OS: update state (Running -> Ready/Waiting)
+    OS->>OS: pick next from ready queue
+    OS->>PCB2: load registers + PC + SP
+    OS->>CPU: resume execution of P2
+```
 
 Context switching is **pure overhead** — during the switch, no useful work is done. The cost includes saving and restoring registers, flushing and reloading CPU caches (which causes cache pollution), flushing the TLB (Translation Lookaside Buffer), and flushing the CPU pipeline. On modern systems, a context switch typically takes 1-10 microseconds. This might seem small, but with thousands of switches per second, it adds up.
 
@@ -68,6 +115,16 @@ Why do we need IPC? There are several reasons. **Data sharing** allows one proce
 **Signals** are asynchronous notifications sent to a process. They carry limited information — just a signal number — so they're used for event notification rather than data transfer. Examples include `SIGKILL` to forcefully terminate a process, `SIGTERM` for graceful termination, and `SIGINT` which is sent when you press Ctrl+C.
 
 In a project, if I had to choose between shared memory and message queues for IPC, I'd consider the trade-offs. Shared memory is faster since data doesn't copy through the kernel, but it requires careful synchronization with semaphores. Message queues are simpler because the OS handles the buffering and synchronization, but they have more overhead. For high-throughput scenarios, I'd go with shared memory; for simpler, less frequent communication, message queues are easier to maintain.
+
+```
+IPC: Relative overhead (qualitative)
+
+Higher overhead  |  Sockets      ███████
+                |  Msg Queues   ██████
+                |  Pipes        █████
+Lower overhead  |  Shared Mem   ███
+                |  Signals      ██
+```
 
 ## 1.7 Special Process States: Zombies and Orphans
 
