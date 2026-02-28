@@ -6,11 +6,11 @@ A **process** is a program in execution. When you write a C++ program and compil
 
 Think of it this way: a program is like a recipe written in a cookbook, while a process is the actual cooking happening in the kitchen with ingredients, utensils, and a chef actively working. The recipe itself doesn't do anything until someone starts following it.
 
-A process consists of several components that work together. (Memory Layout of a process)
-The **Code Section**, also called the Text section, contains the compiled instructions of your program. 
-The **Data Section** holds global and static variables that persist throughout the program's lifetime. 
-The **Heap** is where dynamically allocated memory lives — when you use `new` in C++, that memory comes from the heap. 
-The **Stack** manages function calls, storing local variables, return addresses, and function parameters. 
+A process consists of several components that work together. (Memory Layout of a process)  
+The **Code Section**, also called the Text section, contains the compiled instructions of your program.  
+The **Data Section** holds global and static variables that persist throughout the program's lifetime.  
+The **Heap** is where dynamically allocated memory lives — when you use `new` in C++, that memory comes from the heap.  
+The **Stack** manages function calls, storing local variables, return addresses, and function parameters.  
 Finally, the **Process Control Block (PCB)** is metadata that the OS maintains about the process, which we'll discuss in detail shortly.
 
 ## 1.2 Process vs Thread
