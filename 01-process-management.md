@@ -15,14 +15,14 @@ Finally, the **Process Control Block (PCB)** is metadata that the OS maintains a
 
 ```mermaid
 flowchart TB
-    subgraph Process Address Space (typical)
-        Stack[Stack\n(function calls, locals)]
-        Heap[Heap\n(dynamic allocations)]
-        Data[Data Section\n(globals/static)]
-        Text[Code/Text Section\n(instructions)]
+    subgraph PAS["Process Address Space (typical)"]
+        Stack["Stack<br/>(function calls, locals)"]
+        Heap["Heap<br/>(dynamic allocations)"]
+        Data["Data Section<br/>(globals/static)"]
+        Text["Code/Text Section<br/>(instructions)"]
         Stack --- Heap --- Data --- Text
     end
-    PCB[(PCB\n(OS metadata, not part of user address space))]
+    PCB[("PCB<br/>(OS metadata, not part of user address space)")]
 ```
 
 ## 1.2 Process vs Thread
