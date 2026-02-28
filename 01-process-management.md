@@ -6,12 +6,13 @@ A **process** is a program in execution. When you write a C++ program and compil
 
 Think of it this way: a program is like a recipe written in a cookbook, while a process is the actual cooking happening in the kitchen with ingredients, utensils, and a chef actively working. The recipe itself doesn't do anything until someone starts following it.
 
-A process consists of several components that work together. (Memory Layout of a process)  
-The **Code Section**, also called the Text section, contains the compiled instructions of your program.  
-The **Data Section** holds global and static variables that persist throughout the program's lifetime.  
-The **Heap** is where dynamically allocated memory lives — when you use `new` in C++, that memory comes from the heap.  
-The **Stack** manages function calls, storing local variables, return addresses, and function parameters.  
-Finally, the **Process Control Block (PCB)** is metadata that the OS maintains about the process, which we'll discuss in detail shortly.
+A process consists of several components that work together. (Memory Layout of a process)
+
+- The **Code Section**, also called the Text section, contains the compiled instructions of your program.
+- The **Data Section** holds global and static variables that persist throughout the program's lifetime.
+- The **Heap** is where dynamically allocated memory lives — when you use `new` in C++, that memory comes from the heap.
+- The **Stack** manages function calls, storing local variables, return addresses, and function parameters.
+- Finally, the **Process Control Block (PCB)** is metadata that the OS maintains about the process, which we'll discuss in detail shortly.
 
 ```mermaid
 flowchart TB
@@ -47,7 +48,16 @@ When would you use each? In my C++ work, I use threads when I need concurrent ex
 
 The **Process Control Block** is a data structure maintained by the OS for every process. Think of it as the process's identity card that the OS uses to manage it. Without the PCB, the OS couldn't keep track of what each process is doing or resume it after a context switch.
 
-The PCB contains several important pieces of information. The **Process ID (PID)** is a unique identifier for the process. The **Process State** indicates whether the process is running, waiting, ready, or in another state. The **Program Counter** stores the address of the next instruction to execute. The **CPU Registers** hold the contents of all process-centric registers at the time of the last context switch. **CPU Scheduling Information** includes the process priority and pointers to scheduling queues. **Memory Management Information** contains page tables, segment tables, and base/limit registers. **I/O Status Information** tracks the list of open files and I/O devices allocated to the process. Finally, **Accounting Information** records CPU time used, time limits, and other statistics.
+The PCB contains several important pieces of information.
+
+- The **Process ID (PID)** is a unique identifier for the process.
+- The **Process State** indicates whether the process is running, waiting, ready, or in another state.
+- The **Program Counter** stores the address of the next instruction to execute.
+- The **CPU Registers** hold the contents of all process-centric registers at the time of the last context switch.
+- **CPU Scheduling Information** includes the process priority and pointers to scheduling queues.
+- **Memory Management Information** contains page tables, segment tables, and base/limit registers.
+- **I/O Status Information** tracks the list of open files and I/O devices allocated to the process.
+- Finally, **Accounting Information** records CPU time used, time limits, and other statistics.
 
 The PCB is crucial for multitasking. When the OS switches from one process to another, it saves everything about the current process — the program counter, registers, memory mappings — into that process's PCB. When the OS comes back to that process later, it restores everything from the PCB, and the process continues as if nothing happened. This is the foundation of how modern operating systems can run many programs seemingly simultaneously.
 
@@ -77,7 +87,15 @@ Here's a practical example: when I call a blocking function like `read()` on a f
 
 **Context switching** is the mechanism by which the OS saves the state of one process and loads the state of another, allowing multiple processes to share a single CPU. This is what enables multitasking.
 
-When a context switch happens, several things occur in sequence. First, an interrupt or system call triggers the switch — this could be a timer interrupt indicating the time slice expired, an I/O interrupt, or a system call from the process itself. The OS then saves the current process's state, including all CPU registers, the program counter, and the stack pointer, into that process's PCB. The OS updates the PCB to reflect the new state (Running to Ready, or Running to Waiting). Next, the scheduler selects a process from the ready queue. The OS loads the new process's state from its PCB, restoring all the registers and the program counter. If the system uses virtual memory, the OS also updates the memory mappings by switching page tables. Finally, the CPU jumps to the instruction pointed to by the new program counter, and the new process resumes execution.
+When a context switch happens, several things occur in sequence.
+
+1. First, an interrupt or system call triggers the switch — this could be a timer interrupt indicating the time slice expired, an I/O interrupt, or a system call from the process itself.
+2. The OS then saves the current process's state, including all CPU registers, the program counter, and the stack pointer, into that process's PCB.
+3. The OS updates the PCB to reflect the new state (Running to Ready, or Running to Waiting).
+4. Next, the scheduler selects a process from the ready queue.
+5. The OS loads the new process's state from its PCB, restoring all the registers and the program counter.
+6. If the system uses virtual memory, the OS also updates the memory mappings by switching page tables.
+7. Finally, the CPU jumps to the instruction pointed to by the new program counter, and the new process resumes execution.
 
 ```mermaid
 sequenceDiagram
@@ -102,7 +120,12 @@ This overhead is why threads are often preferred over processes for tasks that n
 
 Since processes have separate address spaces, they cannot directly share data. **Inter-Process Communication** provides mechanisms for processes to communicate and synchronize with each other.
 
-Why do we need IPC? There are several reasons. **Data sharing** allows one process to produce data that another consumes. **Modularity** lets us break an application into cooperating processes. **Privilege separation** enables running sensitive operations in separate processes for security. **Parallelism** allows distributing work across multiple processes.
+Why do we need IPC? There are several reasons.
+
+- **Data sharing** allows one process to produce data that another consumes.
+- **Modularity** lets us break an application into cooperating processes.
+- **Privilege separation** enables running sensitive operations in separate processes for security.
+- **Parallelism** allows distributing work across multiple processes.
 
 **Pipes** are one of the simplest IPC mechanisms. A pipe is a unidirectional communication channel where data flows in one direction — one process writes, another reads. Anonymous pipes work between parent-child processes, while named pipes (also called FIFOs) can work between unrelated processes. In C++, you'd create a pipe with the `pipe()` system call, which gives you two file descriptors — one for reading and one for writing.
 
